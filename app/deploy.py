@@ -35,6 +35,10 @@ from services.wxpush_notification_service import (
     send_collection_summary_to_wxpush,
     wxpush_notifications_enabled,
 )
+from services.pushplus_notification_service import (
+    pushplus_notifications_enabled,
+    send_collection_summary_to_pushplus,
+)
 from settings import LOG_DIR
 from settings import settings
 from utils import init_log
@@ -118,6 +122,8 @@ async def _deliver_collection_summary(summary, *, account_label: str | None = No
         await send_collection_summary_to_telegram(summary, account_label=account_label)
     if wxpush_notifications_enabled():
         await send_collection_summary_to_wxpush(summary, account_label=account_label)
+    if pushplus_notifications_enabled():
+        await send_collection_summary_to_pushplus(summary, account_label=account_label)
 
 
 async def execute_browser_tasks_with_notification(
@@ -127,7 +133,11 @@ async def execute_browser_tasks_with_notification(
         logger.error(configuration_error)
         raise RuntimeError(configuration_error)
 
-    notifications_enabled = telegram_notifications_enabled() or wxpush_notifications_enabled()
+    notifications_enabled = (
+        telegram_notifications_enabled()
+        or wxpush_notifications_enabled()
+        or pushplus_notifications_enabled()
+    )
     if not notifications_enabled:
         logger.debug("No notification channel is configured; using standard collection flow")
     else:
@@ -136,6 +146,8 @@ async def execute_browser_tasks_with_notification(
             enabled_channels.append("Telegram")
         if wxpush_notifications_enabled():
             enabled_channels.append("WXPush")
+        if pushplus_notifications_enabled():
+            enabled_channels.append("PushPlus")
         logger.debug("Notification channel(s) enabled: {}", ", ".join(enabled_channels))
 
     try:
